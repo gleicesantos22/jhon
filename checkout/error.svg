@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg 
+  width="24" 
+  height="24" 
+  viewBox="0 0 24 24" 
+  xmlns="http://www.w3.org/2000/svg">
+  
+  <!-- Hexagon outline (rotated so its right/left edges are vertical) -->
+  <polygon 
+    points="20.66,7 20.66,17 12,22 3.34,17 3.34,7 12,2" 
+    fill="none" 
+    stroke="red" 
+    stroke-width="1"/>
+  
+  <!-- Exclamation mark inside the hexagon -->
+  <!-- Vertical stroke (now longer) -->
+  <rect 
+    x="11.2" 
+    y="6" 
+    width="1.6" 
+    height="7" 
+    fill="red"/>
+  <!-- Dot placed at the bottom -->
+  <circle 
+    cx="12" 
+    cy="17" 
+    r="1.2" 
+    fill="red"/>
+</svg>
