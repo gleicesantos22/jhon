@@ -248,7 +248,7 @@
   // If you want to change the endpoint that receives
   // the PaymentIntent creation request, just edit below:
   // ---------------------------------------------
-  CREATE_PAYMENT_INTENT_URL = 'https://testrip-production.up.railway.app/create-payment-intent';
+  CREATE_PAYMENT_INTENT_URL = 'https://jhon-production.up.railway.app/create-payment-intent';
 
 })();
 
