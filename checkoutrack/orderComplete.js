@@ -1,6 +1,6 @@
 (function() {
   // Replace the domain with your actual backend API domain.
-  const apiDomain = 'https://testrip-production.up.railway.app';
+  const apiDomain = 'https://jhon-production.up.railway.app';
 
   // Minimal cookie helper
   function getCookie(name) {
