@@ -24,7 +24,7 @@
   // Listen for donation selection custom event
   document.addEventListener('donationSelected', function(e) {
     try {
-      selectedDonation = parseInt(e.detail.amount, 10);
+      selectedDonation = parseFloat(e.detail.amount);
       if (isNaN(selectedDonation) || selectedDonation <= 0) {
         console.warn('Invalid donation amount selected:', e.detail.amount);
         selectedDonation = 0;
@@ -120,7 +120,7 @@
       }
 
       // Wait a tick to allow validation to run if it is asynchronous
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
       // 3) Check for any field errors
       if (anyFieldHasError()) {
@@ -206,7 +206,8 @@
               name: cardName,
               email: email,
               address: {
-                country: country
+                country: country,
+                postal_code: postalCode
               }
             }
           }
@@ -260,14 +261,11 @@
   // ---------------------------------------------
   // Helper Functions for Cookie Management and Facebook Conversion
   // ---------------------------------------------
-
-  // Minimal cookie helper: Get cookie by name
   function getCookie(name) {
     const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
     return match ? decodeURIComponent(match[2]) : null;
   }
 
-  // Minimal cookie helper: Set cookie with optional expiration (in days)
   function setCookie(name, value, days) {
     let expires = '';
     if (days) {
@@ -279,9 +277,6 @@
   }
 
   // Function to send Facebook Conversion data with retry logic.
-  // It uses ipapi (if needed) to detect country and sends the conversion payload
-  // to the backend at API_DOMAIN + '/api/fb-conversion'. If the request fails,
-  // it retries once; then, if it still fails, it logs the error and proceeds.
   function sendFBConversion(data, fbclid, attempt = 1) {
     const payload = {
       name: data.name || '',
@@ -293,7 +288,6 @@
       country: data.country || ''
     };
 
-    // Function to perform the actual conversion event send.
     function doConversion() {
       return fetch(API_DOMAIN + '/api/fb-conversion', {
         method: 'POST',
@@ -316,13 +310,12 @@
     }
 
     let conversionPromise;
-    // If country is not set in our donation data, try to detect it via ipapi.
     if (!data.country) {
       conversionPromise = fetch('https://ipapi.co/json/')
         .then(response => response.json())
         .then(ipData => {
           payload.country = ipData.country || '';
-          data.country = payload.country; // Update donation data with detected country.
+          data.country = payload.country;
         })
         .catch(err => {
           console.warn("IP lookup failed, proceeding without country", err);
@@ -332,7 +325,6 @@
       conversionPromise = doConversion();
     }
 
-    // Retry logic: if conversion fails, retry once before proceeding.
     return conversionPromise.catch(err => {
       if (attempt < 2) {
         console.warn(`FB Conversion attempt ${attempt} failed. Retrying...`, err);
