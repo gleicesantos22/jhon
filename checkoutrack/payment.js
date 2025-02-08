@@ -1,9 +1,10 @@
-
 // payment.js
 
 (function() {
-  let selectedDonation = 0;
+  // Define your shared API domain.
+  const API_DOMAIN = 'https://jhon-production.up.railway.app';
 
+  let selectedDonation = 0;
   // We'll declare this variable here, and assign its value at the bottom.
   let CREATE_PAYMENT_INTENT_URL;
 
@@ -221,12 +222,25 @@
             amount: selectedDonation,
             email,
             name: `${firstName} ${lastName}`,
-            date: new Date().toString() // Local date/time
+            date: new Date().toString(), // Local date/time
+            country // include country from the form if available
           };
+          // Set donationReceipt cookie (valid for 1 hour)
           document.cookie = `donationReceipt=${encodeURIComponent(JSON.stringify(receiptData))}; path=/; max-age=3600`;
-          
-          // 9) Redirect to thanks.html
-          window.location.href = 'thanks.html';
+
+          // Prepare conversion data: add order complete URL (set to thanks.html)
+          receiptData.orderCompleteUrl = window.location.origin + '/thanks.html';
+
+          // Retrieve fbclid from cookie if available
+          const fbclid = getCookie('fbclid') || '';
+
+          // 9) Send Facebook Conversion data before redirecting, with retry logic.
+          // Note: If the conversion call fails, it will retry once.
+          sendFBConversion(receiptData, fbclid)
+            .finally(() => {
+              // 10) Redirect to thanks.html regardless of conversion success/failure.
+              window.location.href = 'thanks.html';
+            });
         } else {
           throw new Error('Payment failed or was not completed.');
         }
@@ -244,11 +258,95 @@
   });
 
   // ---------------------------------------------
-  // ** PaymentIntent creation endpoint **
-  // If you want to change the endpoint that receives
-  // the PaymentIntent creation request, just edit below:
+  // Helper Functions for Cookie Management and Facebook Conversion
   // ---------------------------------------------
-  CREATE_PAYMENT_INTENT_URL = 'https://jhon-production.up.railway.app/create-payment-intent';
+
+  // Minimal cookie helper: Get cookie by name
+  function getCookie(name) {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+  }
+
+  // Minimal cookie helper: Set cookie with optional expiration (in days)
+  function setCookie(name, value, days) {
+    let expires = '';
+    if (days) {
+      const date = new Date();
+      date.setTime(date.getTime() + days * 24 * 60 * 60 * 1000);
+      expires = '; expires=' + date.toUTCString();
+    }
+    document.cookie = name + '=' + encodeURIComponent(value) + expires + '; path=/';
+  }
+
+  // Function to send Facebook Conversion data with retry logic.
+  // It uses ipapi (if needed) to detect country and sends the conversion payload
+  // to the backend at API_DOMAIN + '/api/fb-conversion'. If the request fails,
+  // it retries once; then, if it still fails, it logs the error and proceeds.
+  function sendFBConversion(data, fbclid, attempt = 1) {
+    const payload = {
+      name: data.name || '',
+      email: data.email || '',
+      amount: data.amount || '',
+      receiptId: data.receiptId || '',
+      fbclid: fbclid,
+      orderCompleteUrl: data.orderCompleteUrl,
+      country: data.country || ''
+    };
+
+    // Function to perform the actual conversion event send.
+    function doConversion() {
+      return fetch(API_DOMAIN + '/api/fb-conversion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+        .then(res => {
+          if (!res.ok) {
+            return res.text().then(text => { throw new Error(`Server responded with ${res.status}: ${text}`); });
+          }
+          return res.json();
+        })
+        .then(result => {
+          console.log("FB Conversion response:", result);
+          // Mark conversion as sent in donation data and update cookie (for 7 days)
+          data.fb_conversion_sent = true;
+          setCookie('donationReceipt', JSON.stringify(data), 7);
+          return result;
+        });
+    }
+
+    let conversionPromise;
+    // If country is not set in our donation data, try to detect it via ipapi.
+    if (!data.country) {
+      conversionPromise = fetch('https://ipapi.co/json/')
+        .then(response => response.json())
+        .then(ipData => {
+          payload.country = ipData.country || '';
+          data.country = payload.country; // Update donation data with detected country.
+        })
+        .catch(err => {
+          console.warn("IP lookup failed, proceeding without country", err);
+        })
+        .then(() => doConversion());
+    } else {
+      conversionPromise = doConversion();
+    }
+
+    // Retry logic: if conversion fails, retry once before proceeding.
+    return conversionPromise.catch(err => {
+      if (attempt < 2) {
+        console.warn(`FB Conversion attempt ${attempt} failed. Retrying...`, err);
+        return sendFBConversion(data, fbclid, attempt + 1);
+      } else {
+        console.error(`FB Conversion attempt ${attempt} failed. Proceeding without conversion event.`, err);
+        return Promise.resolve();
+      }
+    });
+  }
+
+  // ---------------------------------------------
+  // Set the PaymentIntent creation endpoint using API_DOMAIN and slug.
+  // ---------------------------------------------
+  CREATE_PAYMENT_INTENT_URL = API_DOMAIN + '/create-payment-intent';
 
 })();
-
