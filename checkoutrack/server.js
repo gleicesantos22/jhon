@@ -1,3 +1,5 @@
+// server.js
+
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
@@ -21,7 +23,6 @@ const FACEBOOK_PIXEL_ID = process.env.FACEBOOK_PIXEL_ID || '';
 const FACEBOOK_ACCESS_TOKEN = process.env.FACEBOOK_ACCESS_TOKEN || '';
 const FACEBOOK_TEST_EVENT_CODE = process.env.FACEBOOK_TEST_EVENT_CODE || '';
 
-// Just a session secret for express-session
 const SESSION_SECRET = process.env.SESSION_SECRET || 'somesecret';
 
 const app = express();
@@ -102,7 +103,6 @@ db.serialize(() => {
     )
   `);
 
-  // New table to log raw Facebook conversion payloads and retry attempts
   db.run(`
     CREATE TABLE IF NOT EXISTS fb_conversion_logs (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -121,10 +121,8 @@ db.serialize(() => {
 // HELPER: Send to FB Conversions API
 // ------------------------------------------------------
 async function sendFacebookConversionEvent(donationRow) {
-  // Dynamically import node-fetch to avoid top-level require
   const fetch = (await import('node-fetch')).default;
 
-  // Hash email if present
   let hashedEmail = null;
   if (donationRow.email) {
     hashedEmail = crypto
@@ -133,7 +131,6 @@ async function sendFacebookConversionEvent(donationRow) {
       .digest('hex');
   }
 
-  // Build user_data object
   const userData = {};
   if (hashedEmail) {
     userData.em = hashedEmail;
@@ -177,7 +174,6 @@ async function sendFacebookConversionEvent(donationRow) {
     userData.client_user_agent = donationRow.client_user_agent;
   }
 
-  // Use order_complete_url from donationRow if available
   const eventSourceUrl =
     donationRow.orderCompleteUrl ||
     donationRow.order_complete_url ||
@@ -225,7 +221,6 @@ async function sendFacebookConversionEvent(donationRow) {
   return result;
 }
 
-// Helper function to attempt sending FB conversion with retries (synchronous loop)
 async function attemptFacebookConversion(donationRow) {
   const maxAttempts = 3;
   let attempt = 0;
@@ -238,7 +233,6 @@ async function attemptFacebookConversion(donationRow) {
       lastError = err;
       attempt++;
       console.warn(`Attempt ${attempt} failed for donation id ${donationRow.id}: ${err.message}`);
-      // Wait 1 second before retrying
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
@@ -248,7 +242,7 @@ async function attemptFacebookConversion(donationRow) {
 // ------------------------------------------------------
 // NEW ROUTE: /api/fb-conversion
 // ------------------------------------------------------
-app.post('/api/fb-conversion', async (req, res) => {
+app.post('/api/fb-conversion', async (req, res, next) => {
   try {
     const { email, name, amount, receiptId, fbclid, country, orderCompleteUrl } = req.body;
 
@@ -256,24 +250,21 @@ app.post('/api/fb-conversion', async (req, res) => {
       return res.status(400).json({ error: 'Missing email or amount' });
     }
 
-    const donationAmount = Math.round(Number(amount) * 100);
+    const donationAmountCents = Math.round(Number(amount) * 100);
 
-    // Try to find an existing donation record by email + donation amount
     let row = await dbGet(
       `SELECT * FROM donations WHERE email = ? AND donation_amount = ? LIMIT 1`,
-      [email, donationAmount]
+      [email, donationAmountCents]
     );
 
     if (!row) {
-      // Insert new donation record
       const insert = await dbRun(
         `INSERT INTO donations (donation_amount, email, first_name, fbclid, country, order_complete_url, fb_conversion_sent)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
-        [donationAmount, email, name || null, fbclid || null, country || null, orderCompleteUrl || null, 0]
+        [donationAmountCents, email, name || null, fbclid || null, country || null, orderCompleteUrl || null, 0]
       );
       row = await dbGet(`SELECT * FROM donations WHERE id = ?`, [insert.lastID]);
     } else {
-      // Update existing donation record if needed
       await dbRun(
         `UPDATE donations
          SET first_name = COALESCE(first_name, ?),
@@ -286,12 +277,16 @@ app.post('/api/fb-conversion', async (req, res) => {
       row = await dbGet(`SELECT * FROM donations WHERE id = ?`, [row.id]);
     }
 
-    // If fb_conversion_sent is already 1, skip sending conversion
+    // Ensure that the donation payment is successful by checking the PaymentIntent status.
+    const paymentIntent = await stripeInstance.paymentIntents.retrieve(row.payment_intent_id);
+    if (paymentIntent.status !== 'succeeded') {
+      return res.status(400).json({ error: 'Payment not successful, conversion event not sent.' });
+    }
+
     if (row.fb_conversion_sent === 1) {
       return res.json({ message: 'Already sent conversion for that donation.' });
     }
 
-    // Capture client IP and user agent from the request and update donation record
     const clientIp =
       req.headers['x-forwarded-for'] ||
       req.connection?.remoteAddress ||
@@ -306,7 +301,6 @@ app.post('/api/fb-conversion', async (req, res) => {
     row.client_user_agent = clientUserAgent;
     row.orderCompleteUrl = orderCompleteUrl;
 
-    // Store the raw conversion payload in fb_conversion_logs
     const rawPayload = JSON.stringify({ email, name, amount, fbclid, country, orderCompleteUrl });
     const insertLogResult = await dbRun(
       `INSERT INTO fb_conversion_logs (donation_id, raw_payload, attempts, status) VALUES (?, ?, ?, ?)`,
@@ -314,23 +308,19 @@ app.post('/api/fb-conversion', async (req, res) => {
     );
     const logId = insertLogResult.lastID;
 
-    // Attempt to send conversion event with retry logic
     const conversionResult = await attemptFacebookConversion(row);
     const now = new Date().toISOString();
     if (conversionResult.success) {
-      // Update log record and donation record if conversion sent successfully
       await dbRun(
         "UPDATE fb_conversion_logs SET status = 'sent', attempts = ?, last_attempt = ? WHERE id = ?",
         [conversionResult.attempts, now, logId]
       );
       await dbRun("UPDATE donations SET fb_conversion_sent = 1 WHERE id = ?", [row.id]);
     } else {
-      // Update log record with failure details; status remains pending for background retry
       await dbRun(
         "UPDATE fb_conversion_logs SET attempts = ?, last_attempt = ?, error = ? WHERE id = ?",
         [conversionResult.attempts, now, conversionResult.error ? conversionResult.error.message : '', logId]
       );
-      // Proceed even if conversion event sending failed here
     }
 
     return res.json({ message: 'Conversion processing initiated.' });
@@ -535,16 +525,14 @@ app.post('/admin-api/users', isAuthenticated, async (req, res, next) => {
 // ------------------------------------------------------
 setInterval(async () => {
   try {
-    // Get all fb_conversion_logs that have not been sent
     const logs = await dbAll("SELECT * FROM fb_conversion_logs WHERE status != 'sent'");
     for (const log of logs) {
-      // Retrieve the associated donation record
       const donationRow = await dbGet("SELECT * FROM donations WHERE id = ?", [log.donation_id]);
       if (!donationRow) continue;
       const result = await attemptFacebookConversion(donationRow);
       const now = new Date().toISOString();
       if (result.success) {
-        await dbRun("UPDATE fb_conversion_logs SET status = 'sent', attempts = ?, last_attempt = ?, error = NULL WHERE id = ?", [result.attempts, now, log.id]);
+        await dbRun("UPDATE fb_conversion_logs SET status = 'sent', attempts = ?, last_attempt = ? WHERE id = ?", [result.attempts, now, log.id]);
         await dbRun("UPDATE donations SET fb_conversion_sent = 1 WHERE id = ?", [donationRow.id]);
         console.log(`Successfully retried FB conversion for donation id ${donationRow.id}`);
       } else {
