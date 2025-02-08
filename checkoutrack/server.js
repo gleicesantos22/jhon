@@ -10,8 +10,6 @@ const bodyParser = require('body-parser');
 const cors = require('cors');
 require('dotenv').config();
 const crypto = require('crypto');
-// Removed top-level require('node-fetch') – dynamic import used below
-// const fetch = require('node-fetch'); // <-- removed
 
 // ------------------------------------------------------
 // ENVIRONMENT VARIABLES
@@ -56,8 +54,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 // ------------------------------------------------------
 const db = new sqlite3.Database('./database.sqlite', (err) => {
   if (err) {
-    // Previously, the code was doing process.exit(1). We remove that
-    // to avoid crashing. Instead, we just log it and keep going.
     console.error('Error opening database:', err);
   } else {
     console.log('Connected to SQLite database.');
@@ -90,23 +86,33 @@ db.serialize(() => {
       order_complete_url TEXT,
       payment_intent_id TEXT,
       payment_intent_status TEXT,
+      fbclid TEXT,
+      fb_conversion_sent INTEGER DEFAULT 0,
+      client_ip_address TEXT,
+      client_user_agent TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
-
-  // Add columns for fbclid and fb_conversion_sent if not present
-  db.run(`ALTER TABLE donations ADD COLUMN fbclid TEXT`, (err) => {
-    if (err) console.log('fbclid column may already exist:', err.message);
-  });
-  db.run(`ALTER TABLE donations ADD COLUMN fb_conversion_sent INTEGER DEFAULT 0`, (err) => {
-    if (err) console.log('fb_conversion_sent column may already exist:', err.message);
-  });
 
   db.run(`
     CREATE TABLE IF NOT EXISTS admin_users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE,
       password TEXT
+    )
+  `);
+
+  // New table to log raw Facebook conversion payloads and retry attempts
+  db.run(`
+    CREATE TABLE IF NOT EXISTS fb_conversion_logs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      donation_id INTEGER,
+      raw_payload TEXT,
+      attempts INTEGER DEFAULT 0,
+      last_attempt DATETIME,
+      status TEXT DEFAULT 'pending',
+      error TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
 });
@@ -132,8 +138,6 @@ async function sendFacebookConversionEvent(donationRow) {
   if (hashedEmail) {
     userData.em = hashedEmail;
   }
-
-  // Include first name and last name if available
   if (donationRow.first_name) {
     userData.fn = crypto
       .createHash('sha256')
@@ -145,9 +149,7 @@ async function sendFacebookConversionEvent(donationRow) {
       .createHash('sha256')
       .update(donationRow.last_name.trim().toLowerCase())
       .digest('hex');
-  }
-  // If only donationRow.name is available, attempt to split it
-  else if (donationRow.name) {
+  } else if (donationRow.name) {
     const parts = donationRow.name.trim().split(' ');
     if (parts.length > 0) {
       userData.fn = crypto
@@ -162,16 +164,12 @@ async function sendFacebookConversionEvent(donationRow) {
       }
     }
   }
-
-  // Include country if available
   if (donationRow.country) {
     userData.country = crypto
       .createHash('sha256')
       .update(donationRow.country.trim().toLowerCase())
       .digest('hex');
   }
-
-  // Include client IP and user agent if available (these are not hashed)
   if (donationRow.client_ip_address) {
     userData.client_ip_address = donationRow.client_ip_address;
   }
@@ -179,7 +177,7 @@ async function sendFacebookConversionEvent(donationRow) {
     userData.client_user_agent = donationRow.client_user_agent;
   }
 
-  // Use the order_complete_url provided by the client
+  // Use order_complete_url from donationRow if available
   const eventSourceUrl =
     donationRow.orderCompleteUrl ||
     donationRow.order_complete_url ||
@@ -227,6 +225,26 @@ async function sendFacebookConversionEvent(donationRow) {
   return result;
 }
 
+// Helper function to attempt sending FB conversion with retries (synchronous loop)
+async function attemptFacebookConversion(donationRow) {
+  const maxAttempts = 3;
+  let attempt = 0;
+  let lastError = null;
+  while (attempt < maxAttempts) {
+    try {
+      const result = await sendFacebookConversionEvent(donationRow);
+      return { success: true, result, attempts: attempt + 1 };
+    } catch (err) {
+      lastError = err;
+      attempt++;
+      console.warn(`Attempt ${attempt} failed for donation id ${donationRow.id}: ${err.message}`);
+      // Wait 1 second before retrying
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
+  }
+  return { success: false, error: lastError, attempts: attempt };
+}
+
 // ------------------------------------------------------
 // NEW ROUTE: /api/fb-conversion
 // ------------------------------------------------------
@@ -247,7 +265,7 @@ app.post('/api/fb-conversion', async (req, res) => {
     );
 
     if (!row) {
-      // Insert new row
+      // Insert new donation record
       const insert = await dbRun(
         `INSERT INTO donations (donation_amount, email, first_name, fbclid, country, order_complete_url, fb_conversion_sent)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -255,7 +273,7 @@ app.post('/api/fb-conversion', async (req, res) => {
       );
       row = await dbGet(`SELECT * FROM donations WHERE id = ?`, [insert.lastID]);
     } else {
-      // Update existing record
+      // Update existing donation record if needed
       await dbRun(
         `UPDATE donations
          SET first_name = COALESCE(first_name, ?),
@@ -273,26 +291,49 @@ app.post('/api/fb-conversion', async (req, res) => {
       return res.json({ message: 'Already sent conversion for that donation.' });
     }
 
-    // Capture client IP and user agent from the request
+    // Capture client IP and user agent from the request and update donation record
     const clientIp =
       req.headers['x-forwarded-for'] ||
       req.connection?.remoteAddress ||
       req.socket?.remoteAddress ||
       '';
     const clientUserAgent = req.headers['user-agent'] || '';
+    await dbRun(
+      `UPDATE donations SET client_ip_address = ?, client_user_agent = ? WHERE id = ?`,
+      [clientIp, clientUserAgent, row.id]
+    );
     row.client_ip_address = clientIp;
     row.client_user_agent = clientUserAgent;
-
-    // Store the orderCompleteUrl from the payload
     row.orderCompleteUrl = orderCompleteUrl;
 
-    // Send event to Facebook
-    await sendFacebookConversionEvent(row);
+    // Store the raw conversion payload in fb_conversion_logs
+    const rawPayload = JSON.stringify({ email, name, amount, fbclid, country, orderCompleteUrl });
+    const insertLogResult = await dbRun(
+      `INSERT INTO fb_conversion_logs (donation_id, raw_payload, attempts, status) VALUES (?, ?, ?, ?)`,
+      [row.id, rawPayload, 0, 'pending']
+    );
+    const logId = insertLogResult.lastID;
 
-    // Mark the donation as conversion sent
-    await dbRun(`UPDATE donations SET fb_conversion_sent = 1 WHERE id = ?`, [row.id]);
+    // Attempt to send conversion event with retry logic
+    const conversionResult = await attemptFacebookConversion(row);
+    const now = new Date().toISOString();
+    if (conversionResult.success) {
+      // Update log record and donation record if conversion sent successfully
+      await dbRun(
+        "UPDATE fb_conversion_logs SET status = 'sent', attempts = ?, last_attempt = ? WHERE id = ?",
+        [conversionResult.attempts, now, logId]
+      );
+      await dbRun("UPDATE donations SET fb_conversion_sent = 1 WHERE id = ?", [row.id]);
+    } else {
+      // Update log record with failure details; status remains pending for background retry
+      await dbRun(
+        "UPDATE fb_conversion_logs SET attempts = ?, last_attempt = ?, error = ? WHERE id = ?",
+        [conversionResult.attempts, now, conversionResult.error ? conversionResult.error.message : '', logId]
+      );
+      // Proceed even if conversion event sending failed here
+    }
 
-    return res.json({ message: 'Conversion sent to Facebook successfully.' });
+    return res.json({ message: 'Conversion processing initiated.' });
   } catch (err) {
     console.error('Error in /api/fb-conversion:', err);
     return res.status(500).json({ error: 'Internal error sending FB conversion.' });
@@ -490,6 +531,33 @@ app.post('/admin-api/users', isAuthenticated, async (req, res, next) => {
 });
 
 // ------------------------------------------------------
+// BACKGROUND WORKER: Retry Pending FB Conversions
+// ------------------------------------------------------
+setInterval(async () => {
+  try {
+    // Get all fb_conversion_logs that have not been sent
+    const logs = await dbAll("SELECT * FROM fb_conversion_logs WHERE status != 'sent'");
+    for (const log of logs) {
+      // Retrieve the associated donation record
+      const donationRow = await dbGet("SELECT * FROM donations WHERE id = ?", [log.donation_id]);
+      if (!donationRow) continue;
+      const result = await attemptFacebookConversion(donationRow);
+      const now = new Date().toISOString();
+      if (result.success) {
+        await dbRun("UPDATE fb_conversion_logs SET status = 'sent', attempts = ?, last_attempt = ?, error = NULL WHERE id = ?", [result.attempts, now, log.id]);
+        await dbRun("UPDATE donations SET fb_conversion_sent = 1 WHERE id = ?", [donationRow.id]);
+        console.log(`Successfully retried FB conversion for donation id ${donationRow.id}`);
+      } else {
+        await dbRun("UPDATE fb_conversion_logs SET attempts = ?, last_attempt = ?, error = ? WHERE id = ?", [result.attempts, now, result.error ? result.error.message : '', log.id]);
+        console.warn(`Retry pending for donation id ${donationRow.id}`);
+      }
+    }
+  } catch (err) {
+    console.error("Error processing pending FB conversions:", err);
+  }
+}, 60000);
+
+// ------------------------------------------------------
 // ERROR HANDLING MIDDLEWARE
 // ------------------------------------------------------
 app.use((err, req, res, next) => {
@@ -502,12 +570,10 @@ app.use((err, req, res, next) => {
 // ------------------------------------------------------
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection:', reason);
-  // We do NOT exit; just log and continue.
 });
 
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  // We do NOT exit; just log and continue.
 });
 
 // ------------------------------------------------------
