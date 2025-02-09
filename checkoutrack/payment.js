@@ -1,7 +1,7 @@
 /**********************************************
  * CONFIGURATION KEYS
  **********************************************/
-const API_DOMAIN = 'https://fbcid-production.up.railway.app';
+const API_DOMAIN = 'https://jhon-production.up.railway.app';
 const FACEBOOK_PIXEL_ID = '1155603432794001'; // Replace with your actual Facebook Pixel ID
 
 /**********************************************
