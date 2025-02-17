@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Simplified Donation Form</title>
+  <!-- Include Stripe.js -->
+  <script src="https://js.stripe.com/v3/"></script>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 600px;
+      margin: 2rem auto;
+      padding: 1rem;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    .donation-buttons {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .donation-buttons button {
+      padding: 0.5rem 1rem;
+      border: 1px solid #0070ba;
+      background: #fff;
+      color: #0070ba;
+      cursor: pointer;
+    }
+    .donation-buttons button.active {
+      background: #0070ba;
+      color: #fff;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+    }
+    input, select {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      box-sizing: border-box;
+    }
+    .stripe-element {
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-top: 0.25rem;
+    }
+    button[type="submit"] {
+      margin-top: 1.5rem;
+      width: 100%;
+      padding: 0.75rem;
+      background: #28a745;
+      border: none;
+      color: #fff;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    #error-message {
+      color: red;
+      margin-top: 1rem;
+      text-align: center;
+    }
+    .summary {
+      margin-top: 1.5rem;
+      text-align: center;
+    }
+    .summary dd {
+      margin: 0.5rem 0;
+      font-size: 1.2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Donate Now</h1>
+  <form id="donation-form">
+    <!-- Donation Amount Buttons -->
+    <section>
+      <h2>Select Donation Amount</h2>
+      <ul class="donation-buttons">
+        <li><button type="button" value="25">$25</button></li>
+        <li><button type="button" value="50">$50</button></li>
+        <li>
+          <button type="button" value="100">
+            $100 <small>(Suggested)</small>
+          </button>
+        </li>
+        <li><button type="button" value="300">$300</button></li>
+        <li><button type="button" value="500">$500</button></li>
+        <li><button type="button" value="750">$750</button></li>
+        <li><button type="button" value="1000">$1000</button></li>
+        <li><button type="button" value="1500">$1500</button></li>
+        <li><button type="button" value="2000">$2000</button></li>
+      </ul>
+    </section>
+
+    <!-- Donation Summary -->
+    <section class="summary">
+      <h2>Your Donation</h2>
+      <dl>
+        <dt>Donation Amount:</dt>
+        <dd id="donation-amount">$0.00</dd>
+        <dt>Total Due Today:</dt>
+        <dd id="total-due">$0.00</dd>
+      </dl>
+    </section>
+
+    <!-- Personal & Billing Fields -->
+    <section>
+      <h2>Billing Information</h2>
+      <label for="email">Email Address:</label>
+      <input type="email" id="email" name="email" required />
+
+      <label for="first-name">First Name:</label>
+      <input type="text" id="first-name" name="firstName" required />
+
+      <label for="last-name">Last Name:</label>
+      <input type="text" id="last-name" name="lastName" required />
+
+      <label>
+        <input type="checkbox" id="use-donor-name" />
+        Use as billing name
+      </label>
+
+      <label for="card-name">Name on Card:</label>
+      <input type="text" id="card-name" name="cardName" required />
+
+      <label for="country">Country:</label>
+      <select id="country" name="country" required>
+        <option value="">Select your country</option>
+        <option value="US">United States</option>
+        <option value="CA">Canada</option>
+        <option value="MX">Mexico</option>
+        <option value="GB">United Kingdom</option>
+        <option value="ZA">South Africa</option>
+      </select>
+
+      <label for="postal-code">Postal Code:</label>
+      <input type="text" id="postal-code" name="postalCode" required />
+    </section>
+
+    <!-- Card Details via Stripe Elements -->
+    <section>
+      <h2>Card Details</h2>
+      <label for="card-number-element">Card Number:</label>
+      <div id="card-number-element" class="stripe-element"></div>
+
+      <label for="card-expiry-element">Expiration Date:</label>
+      <div id="card-expiry-element" class="stripe-element"></div>
+
+      <label for="card-cvc-element">CVC:</label>
+      <div id="card-cvc-element" class="stripe-element"></div>
+    </section>
+
+    <!-- Hidden field to store donation amount -->
+    <input type="hidden" id="donation-amount-input" name="donationAmount" value="0" />
+
+    <button type="submit">Donate Now</button>
+    <!-- Error messages will be shown here -->
+    <div id="error-message"></div>
+  </form>
+
+  <!-- Payment JS handles the Stripe integration and API calls -->
+  <script src="/js/payment.js"></script>
+  <script>
+    // --- Donation Amount Buttons & Use Donor Name Logic (inline for brevity)
+    const donationButtons = document.querySelectorAll('.donation-buttons button');
+    const donationAmountEl = document.getElementById('donation-amount');
+    const totalDueEl = document.getElementById('total-due');
+
+    donationButtons.forEach((button) => {
+      button.addEventListener('click', () => {
+        donationButtons.forEach((btn) => btn.classList.remove('active'));
+        button.classList.add('active');
+        const amount = parseInt(button.value);
+        const formatted = '$' + amount.toFixed(2);
+        donationAmountEl.textContent = formatted;
+        totalDueEl.textContent = formatted;
+        document.getElementById('donation-amount-input').value = amount;
+      });
+    });
+
+    const useDonorName = document.getElementById('use-donor-name');
+    const firstNameInput = document.getElementById('first-name');
+    const lastNameInput = document.getElementById('last-name');
+    const cardNameInput = document.getElementById('card-name');
+
+    function updateCardName() {
+      if (useDonorName.checked) {
+        const fullName = (firstNameInput.value + ' ' + lastNameInput.value).trim();
+        cardNameInput.value = fullName;
+        cardNameInput.disabled = true;
+      } else {
+        cardNameInput.disabled = false;
+      }
+    }
+    firstNameInput.addEventListener('blur', updateCardName);
+    lastNameInput.addEventListener('blur', updateCardName);
+    useDonorName.addEventListener('change', updateCardName);
+  </script>
+</body>
+</html>
