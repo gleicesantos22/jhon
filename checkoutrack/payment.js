@@ -2,7 +2,7 @@
 /**********************************************
  * Add your railway link below
  **********************************************/
-const API_DOMAIN = 'https://fbcid-production.up.railway.app';
+const API_DOMAIN = 'https://jhon-production.up.railway.app';
 const FACEBOOK_PIXEL_ID = '1155603432794001'; // your actual Pixel ID
 
 /**********************************************
