@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Admin Panel</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 1000px;
+      margin: 1rem auto;
+      padding: 1rem;
+      background: #f8f9fa;
+    }
+    h1, h2 {
+      text-align: center;
+    }
+    form {
+      margin-bottom: 1.5rem;
+    }
+    input, button {
+      padding: 0.5rem;
+      margin: 0.25rem;
+      font-size: 1rem;
+    }
+    button {
+      cursor: pointer;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      background: #fff;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0.5rem;
+      text-align: left;
+      font-size: 0.9rem;
+    }
+    @media (max-width: 600px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      th, td {
+        box-sizing: border-box;
+        width: 100%;
+      }
+      th {
+        background: #e9ecef;
+      }
+    }
+    #logout-btn {
+      float: right;
+      background: #dc3545;
+      color: #fff;
+      border: none;
+    }
+    #logout-btn:hover {
+      background: #c82333;
+    }
+    /* Styling for pagination controls */
+    #pagination-controls {
+      text-align: center;
+      margin-top: 1rem;
+    }
+    #pagination-controls button {
+      margin: 0 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <div id="auth-section">
+    <!-- Login or registration form will be displayed here -->
+  </div>
+  <div id="admin-content" style="display:none;">
+    <button id="logout-btn">Logout</button>
+    <h2>Donations</h2>
+
+    <!-- Date Filter Form -->
+    <form id="filter-form">
+      <label for="start-date">From:</label>
+      <input type="date" id="start-date">
+      <label for="end-date">To:</label>
+      <input type="date" id="end-date">
+      <button type="submit">Filter</button>
+      <button type="button" id="clear-filter">Clear Filter</button>
+    </form>
+
+    <table id="donations-table">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Email</th>
+          <th>First Name</th>
+          <th>Last Name</th>
+          <th>Card Name</th>
+          <th>Country</th>
+          <th>Postal Code</th>
+          <th>Amount (USD)</th>
+          <th>Payment Intent Status</th>
+          <th>Payment Intent ID</th>
+          <th>Order Complete URL</th>
+          <th>FBCLID</th>
+          <th>FB Conversion Sent</th>
+          <th>Date</th>
+        </tr>
+      </thead>
+      <tbody>
+        <!-- Donation records will be inserted here -->
+      </tbody>
+    </table>
+
+    <!-- Pagination Controls -->
+    <div id="pagination-controls">
+      <button id="prev-page" disabled>Previous</button>
+      <span id="page-info">Page 1</span>
+      <button id="next-page" disabled>Next</button>
+    </div>
+
+    <h2>Add New Admin User</h2>
+    <form id="new-user-form">
+      <input type="text" id="new-username" placeholder="Username" required>
+      <input type="password" id="new-password" placeholder="Password" required>
+      <button type="submit">Add User</button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const authSection = document.getElementById('auth-section');
+      const adminContent = document.getElementById('admin-content');
+      const donationsTableBody = document.querySelector('#donations-table tbody');
+      
+      // Filter form elements
+      const filterForm = document.getElementById('filter-form');
+      const startDateInput = document.getElementById('start-date');
+      const endDateInput = document.getElementById('end-date');
+      const clearFilterBtn = document.getElementById('clear-filter');
+
+      // Pagination elements
+      const prevPageBtn = document.getElementById('prev-page');
+      const nextPageBtn = document.getElementById('next-page');
+      const pageInfo = document.getElementById('page-info');
+
+      // Global state
+      let allDonations = [];        // Will hold all donations fetched once
+      let filteredDonations = [];     // Will hold the currently filtered donations
+      let currentPage = 1;
+      const donationsPerPage = 30;
+
+      // Helper function to build full API URLs
+      function apiUrl(endpoint) {
+        // window.API_BASE_URL is defined at the end of the file.
+        // If it's empty, it assumes the API is in the same directory.
+        return (window.API_BASE_URL || "") + endpoint;
+      }
+
+      // Check if admin setup is complete
+      fetch(apiUrl("admin-api/check-setup"))
+        .then(res => res.json())
+        .then(data => {
+          if (!data.setup) {
+            showRegistrationForm();
+          } else {
+            showLoginForm();
+          }
+        })
+        .catch(err => alert('Error checking setup: ' + err.message));
+
+      // Display the registration form for first-time setup
+      function showRegistrationForm() {
+        authSection.innerHTML = `
+          <h2>Register Admin (First Time Setup)</h2>
+          <form id="register-form">
+            <input type="text" id="reg-username" placeholder="Username" required>
+            <input type="password" id="reg-password" placeholder="Password" required>
+            <button type="submit">Register</button>
+          </form>
+        `;
+        document.getElementById('register-form').addEventListener('submit', function(e) {
+          e.preventDefault();
+          const username = document.getElementById('reg-username').value;
+          const password = document.getElementById('reg-password').value;
+          fetch(apiUrl("admin-api/register"), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          })
+            .then(res => res.json())
+            .then(data => {
+              alert(data.message || data.error);
+              if (data.message) {
+                showLoginForm();
+              }
+            })
+            .catch(err => alert('Error: ' + err.message));
+        });
+      }
+
+      // Display the login form
+      function showLoginForm() {
+        authSection.innerHTML = `
+          <h2>Admin Login</h2>
+          <form id="login-form">
+            <input type="text" id="login-username" placeholder="Username" required>
+            <input type="password" id="login-password" placeholder="Password" required>
+            <button type="submit">Login</button>
+          </form>
+        `;
+
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+          e.preventDefault();
+          const username = document.getElementById('login-username').value;
+          const password = document.getElementById('login-password').value;
+          fetch(apiUrl("admin-api/login"), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+          })
+          .then(res => res.json())
+          .then(data => {
+            if (data.message) {
+              alert(data.message);
+              // Hide auth section, show admin content
+              authSection.style.display = 'none';
+              adminContent.style.display = 'block';
+              // Load all donations (once) after login
+              loadAllDonations();
+            } else {
+              alert(data.error || 'Login failed');
+            }
+          })
+          .catch(err => alert('Error: ' + err.message));
+        });
+      }
+
+      // Fetch all donations from the server (one-time load)
+      function loadAllDonations() {
+        // Adjust the route as needed to get ALL donations in one go.
+        fetch(apiUrl("admin-api/donations?all=true"))
+          .then(res => {
+            if (res.status === 401) {
+              alert('Session expired. Please login again.');
+              location.reload();
+            }
+            return res.json();
+          })
+          .then(data => {
+            if (data.donations) {
+              allDonations = data.donations;
+              // By default, set filteredDonations to allDonations
+              filteredDonations = [...allDonations];
+              currentPage = 1;
+              updateTable();
+            }
+          })
+          .catch(err => console.error(err));
+      }
+
+      // Update table based on current filter and page
+      function updateTable() {
+        // Clear existing table rows
+        donationsTableBody.innerHTML = '';
+
+        // Determine how many total pages there are
+        const totalPages = Math.ceil(filteredDonations.length / donationsPerPage);
+
+        // Ensure current page is not out of range
+        if (currentPage < 1) currentPage = 1;
+        if (currentPage > totalPages) currentPage = totalPages;
+
+        // If there is no data, just show page 0/0
+        if (totalPages === 0) {
+          pageInfo.textContent = `Page 0 of 0`;
+          prevPageBtn.disabled = true;
+          nextPageBtn.disabled = true;
+          return;
+        }
+
+        // Calculate the start/end indices for slicing
+        const startIndex = (currentPage - 1) * donationsPerPage;
+        const endIndex = startIndex + donationsPerPage;
+        
+        // Slice the filteredDonations for the current page
+        const currentData = filteredDonations.slice(startIndex, endIndex);
+
+        // Render each donation in the table
+        currentData.forEach(donation => {
+          const row = document.createElement('tr');
+          const amountUSD = (donation.donation_amount / 100).toFixed(2);
+
+          row.innerHTML = `
+            <td>${donation.id}</td>
+            <td>${donation.email || ''}</td>
+            <td>${donation.first_name || ''}</td>
+            <td>${donation.last_name || ''}</td>
+            <td>${donation.card_name || ''}</td>
+            <td>${donation.country || ''}</td>
+            <td>${donation.postal_code || ''}</td>
+            <td>$${amountUSD}</td>
+            <td>${donation.payment_intent_status || ''}</td>
+            <td>${donation.payment_intent_id || ''}</td>
+            <td>${donation.order_complete_url || donation.orderCompleteUrl || ''}</td>
+            <td>${donation.fbclid || ''}</td>
+            <td>${donation.fb_conversion_sent}</td>
+            <td>${donation.created_at}</td>
+          `;
+
+          donationsTableBody.appendChild(row);
+        });
+
+        // Update pagination controls
+        pageInfo.textContent = `Page ${currentPage} of ${totalPages}`;
+        prevPageBtn.disabled = (currentPage === 1);
+        nextPageBtn.disabled = (currentPage === totalPages);
+      }
+
+      // Apply client-side filter on allDonations
+      function applyFilter() {
+        const startDateValue = startDateInput.value;
+        const endDateValue = endDateInput.value;
+
+        // If both are empty, no filter
+        if (!startDateValue && !endDateValue) {
+          filteredDonations = [...allDonations];
+          return;
+        }
+
+        // Convert to Date objects for comparison
+        const startDate = startDateValue ? new Date(startDateValue) : null;
+        const endDate = endDateValue ? new Date(endDateValue) : null;
+
+        // Filter based on created_at date
+        filteredDonations = allDonations.filter(donation => {
+          const donationDate = new Date(donation.created_at);
+
+          // If we have a start date, donationDate must be >= startDate
+          if (startDate && donationDate < startDate) {
+            return false;
+          }
+          // If we have an end date, donationDate must be <= endDate (end of day)
+          if (endDate) {
+            const endOfDay = new Date(endDate);
+            endOfDay.setHours(23, 59, 59, 999);
+            if (donationDate > endOfDay) {
+              return false;
+            }
+          }
+
+          return true;
+        });
+      }
+
+      // Filter form event listener
+      filterForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        // Apply the filter on allDonations
+        applyFilter();
+        currentPage = 1; 
+        updateTable();
+      });
+
+      // Clear filter button event listener
+      clearFilterBtn.addEventListener('click', function() {
+        startDateInput.value = '';
+        endDateInput.value = '';
+        filteredDonations = [...allDonations];
+        currentPage = 1;
+        updateTable();
+      });
+
+      // Pagination button event listeners
+      prevPageBtn.addEventListener('click', function() {
+        if (currentPage > 1) {
+          currentPage--;
+          updateTable();
+        }
+      });
+      nextPageBtn.addEventListener('click', function() {
+        currentPage++;
+        updateTable();
+      });
+
+      // Logout
+      document.getElementById('logout-btn').addEventListener('click', function() {
+        fetch(apiUrl("admin-api/logout"), { method: 'POST' })
+          .then(() => location.reload())
+          .catch(err => console.error(err));
+      });
+
+      // Add new user form
+      document.getElementById('new-user-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const username = document.getElementById('new-username').value;
+        const password = document.getElementById('new-password').value;
+        fetch(apiUrl("admin-api/users"), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        })
+        .then(res => res.json())
+        .then(data => alert(data.message || data.error))
+        .catch(err => alert('Error: ' + err.message));
+      });
+    });
+  </script>
+
+  <!--
+    API Base URL Configuration:
+    Set window.API_BASE_URL to an external API URL if needed.
+    For example:
+      window.API_BASE_URL = "https://testrip-production.up.railway.app/";
+    If you leave it as an empty string (""), the API will be assumed to be in the same directory.
+  -->
+  <script>
+    window.API_BASE_URL = "https://testrip-production.up.railway.app/"; // <-- Set your API base URL here (include trailing slash if not empty)
+  </script>
+</body>
+</html>
