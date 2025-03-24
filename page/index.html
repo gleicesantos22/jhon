@@ -11707,40 +11707,38 @@
                     class="hrt-hide-min-lg hrt-header-right"
                     bis_skin_checked="1"
                   >
-                    <button
-                      class="hrt-tertiary-icon-button hrt-tertiary-icon-button--medium hrt-base-button"
-                      type="button"
-                      aria-label="menu"
-                      aria-controls="dh-mobile-menu-us"
-                      aria-expanded="false"
-                      data-tracking-id="open nav"
-                    >
-                      <svg
-                        aria-hidden="true"
-                        class="hrt-icon hrt-icon--large"
-                        focusable="false"
-                        viewBox="0 0 24 24"
-                      >
-                        <use
-                          data-savepage-href="/_next/static/images/core-9f5eaebde5d33795a05455949ac107afa55b8e5d6b9c14b4d61a7530f0bd47af.svg#menu"
-                          href="#menu"
-                        ></use>
-                        <!--savepage-symbol-insert-->
-                        <symbol
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          id="menu"
-                          xmlns="http://www.w3.org/2000/svg"
-                        >
-                          <path
-                            fill-rule="evenodd"
-                            clip-rule="evenodd"
-                            d="M20.5 6.75h-17a.75.75 0 0 1 0-1.5h17a.75.75 0 1 1 0 1.5Zm-2 6h-13a.75.75 0 1 1 0-1.5h13a.75.75 0 1 1 0 1.5Zm-15 6h17a.75.75 0 1 0 0-1.5h-17a.75.75 0 1 0 0 1.5Z"
-                            fill="currentColor"
-                          ></path>
-                        </symbol>
-                      </svg>
-                    </button>
+
+
+
+                    <button class="hrt-tertiary-icon-button hrt-tertiary-icon-button--medium hrt-base-button" 
+        type="button" aria-label="menu" 
+        aria-controls="dh-mobile-menu-us" 
+        aria-expanded="false" 
+        data-tracking-id="open nav" 
+        id="menuButton">
+    <svg aria-hidden="true" class="hrt-icon hrt-icon--large" focusable="false" viewBox="0 0 24 24">
+        <use data-savepage-href="/_next/static/images/core-9f5eaebde5d33795a05455949ac107afa55b8e5d6b9c14b4d61a7530f0bd47af.svg#menu" href="#menu"></use>
+        <!--savepage-symbol-insert-->
+        <symbol fill="none" viewBox="0 0 24 24" id="menu" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd" 
+                  d="M20.5 6.75h-17a.75.75 0 0 1 0-1.5h17a.75.75 0 1 1 0 1.5Zm-2 6h-13a.75.75 0 1 1 0-1.5h13a.75.75 0 1 1 0 1.5Zm-15 6h17a.75.75 0 1 0 0-1.5h-17a.75.75 0 1 0 0 1.5Z" 
+                  fill="currentColor">
+            </path>
+        </symbol>
+    </svg>
+</button> 
+
+<!-- JavaScript to Disable Redirection -->
+<script>
+    document.getElementById('menuButton').addEventListener('click', function(event) {
+        event.preventDefault();  // Prevents any default behavior
+        event.stopPropagation(); // Stops event from bubbling up
+        console.log("Menu button clicked, but no redirection occurs."); // For debugging
+    });
+</script>
+
+
+
                   </div>
                 </nav>
               </div>
