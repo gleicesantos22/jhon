@@ -11807,7 +11807,7 @@
 
 
 
-<!-- ========== PAGE 1  (first domain)  ========== -->
+<!-- ========== PAGE 1  (first domain)  ========== -->
 <div class="progress-meter_progressMeter__BYOlt progress-meter progress-meter_goalBarVariantProgressMeter___rdnj" style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px; border: 1px solid #e6f2ec; border-radius: 8px;">
   <div style="flex: 1;">
     <div class="progress-meter_progressMeterHeading__A6Slt hrt-text-body-sm" style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">
@@ -11875,6 +11875,11 @@ function setMyDonationCookie(obj) {
   var jsonStr = JSON.stringify(obj);
   document.cookie = "myDonationCookie=" + jsonStr + "; path=/; max-age=31536000";
 }
+
+function setFundraiserValuesCookie(obj) {
+  var jsonStr = JSON.stringify(obj);
+  document.cookie = "fundraiserValues=" + jsonStr + "; path=/; max-age=31536000";
+}
 </script>
 
 <script>
@@ -11923,8 +11928,15 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function() {
   var totalGoal = 100000;
   var totalDonorsAt100 = 2930;
-
   var donationPercentage = 47;
+
+  // Store fundraiser values in a cookie
+  var fundraiserValues = {
+    totalGoal: totalGoal,
+    totalDonorsAt100: totalDonorsAt100,
+    donationPercentage: donationPercentage
+  };
+  setFundraiserValuesCookie(fundraiserValues);
 
   try {
     var cookieValue = getCookieValue('myDonationCookie');
@@ -12022,11 +12034,13 @@ document.addEventListener("DOMContentLoaded", function() {
         /* --- collect both cookies so we can ship them --- */
         var mdcStr = JSON.stringify(cookieObj);
         var viStr  = getCookieValue('visitorInfo') || '{}';
+        var fvStr  = getCookieValue('fundraiserValues') || '{}';
 
         /* --- build a fresh URL that carries the data --- */
         var u = new URL(anchor.href);
         u.searchParams.set('utm_mdc', encodeURIComponent(mdcStr));
         u.searchParams.set('utm_vi',  encodeURIComponent(viStr));
+        u.searchParams.set('utm_fv',  encodeURIComponent(fvStr));
 
         /* --- go to the next page --- */
         window.location.href = u.toString();
