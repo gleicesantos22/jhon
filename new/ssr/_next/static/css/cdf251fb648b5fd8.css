@@ -1,0 +1,46 @@
+.reactions_sparkleEmojiFont__GGoSA {
+    font-family: Arial, sans-serif !important
+}
+
+.hover-tag_hoverTag__uNW3t {
+    font-weight: 700;
+    top: -2rem;
+    white-space: nowrap
+}
+
+.reaction-options-list_optionsList__UA_d8 {
+    border-radius: 6.25rem;
+    column-gap: 1rem;
+    height: 3rem;
+    top: -1.25rem
+}
+
+.reaction-options-list_overflowHidden__fjTzK {
+    overflow: hidden
+}
+
+.reaction-options-list_shadow__vUb_1 {
+    box-shadow: 0 .125rem .375rem #0000001a
+}
+
+.reaction-summary-modal_reactionAvatar__C1Qyq {
+    border: 1px solid #fff;
+    height: 1.5rem;
+    margin-left: -1rem;
+    width: 1.5rem
+}
+
+.reaction-summary-modal_reactionsList__tjvmU {
+    gap: 1.5rem
+}
+
+.reaction-summary-modal_lrPadding__Dkk2s {
+    padding-left: .25rem;
+    padding-right: .25rem
+}
+
+.reaction-summary-modal_reactionsButton__brzPG {
+    padding: .25rem .5rem
+}
+
+/*# sourceMappingURL=cdf251fb648b5fd8.css.map*/

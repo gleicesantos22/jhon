@@ -1,0 +1,30 @@
+.donation-protection-modal_headline__IoOGL {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    text-align: center
+}
+
+@media(min-width:48em) {
+    .donation-protection-modal_headline__IoOGL {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem
+    }
+}
+
+.donation-protection-modal_listItem__N6PJn {
+    display: flex;
+    padding: .5rem 0
+}
+
+@media(min-width:48em) {
+    .donation-protection-modal_listItem__N6PJn {
+        padding: .5rem 1.5rem
+    }
+}
+
+.donation-protection-modal_hr__6riqc {
+    border-top: 1px solid var(--hrt-color-border-neutral-subtle);
+    padding: .5rem 0
+}
+
+/*# sourceMappingURL=f6a60dfebfff8f0a.css.map*/

@@ -1,0 +1,17 @@
+.comments_commentsListItem__Nsxrs:not(:last-child) {
+    margin-bottom: 2.5rem
+}
+
+.comments_subtitle__ptoXJ {
+    color: var(--hrt-color-text-supporting);
+    margin-bottom: 1.5rem;
+    margin-top: .5rem
+}
+
+@media(min-width:64em) {
+    .comments_subtitle__ptoXJ {
+        margin-bottom: 2rem
+    }
+}
+
+/*# sourceMappingURL=77981bbe0e7cf6fb.css.map*/

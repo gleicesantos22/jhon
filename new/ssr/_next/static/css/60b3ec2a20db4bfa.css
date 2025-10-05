@@ -1,0 +1,53 @@
+.donation-suggestion-card_card__WNQJD {
+    background-color: var(--hrt-color-surface-feature-medium);
+    border-radius: 1.5rem;
+    color: var(--hrt-color-text-purple-strong);
+    margin-bottom: 1rem;
+    overflow: hidden;
+    padding: 2rem;
+    position: relative
+}
+
+@media(min-width:64em) {
+    .donation-suggestion-card_card__WNQJD {
+        margin-top: -16px;
+        padding: 2rem
+    }
+}
+
+.donation-suggestion-card_header__7Jg24 {
+    font-size: clamp(1.5rem, 1.5rem + .25*(100vw - 23.4375rem)/66.5625, 1.75rem);
+    line-height: 1.875rem;
+    margin-bottom: 0
+}
+
+.donation-suggestion-card_content__a6R_8 {
+    position: relative
+}
+
+.donation-suggestion-card_backgroundImage__4vJZk {
+    background-image: url(/nextassets/campaign/circle-treatment-half.png);
+    background-position: right -5%;
+    background-repeat: no-repeat;
+    background-size: 40%
+}
+
+@media(max-width:47.999em) {
+    .donation-suggestion-card_backgroundImage__4vJZk {
+        background-size: 45%
+    }
+}
+
+@media(max-width:35.999em) {
+    .donation-suggestion-card_backgroundImage__4vJZk {
+        background-size: 70%
+    }
+}
+
+@media(max-width:23.4365em) {
+    .donation-suggestion-card_backgroundImage__4vJZk {
+        background-size: 100%
+    }
+}
+
+/*# sourceMappingURL=60b3ec2a20db4bfa.css.map*/
