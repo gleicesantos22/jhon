@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Donation Receipt</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    /* Your existing CSS styles */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      background: #f8f9fa;
+      min-height: 100vh;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .container {
+      width: 100%;
+      max-width: 400px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    .success-header {
+      background: #10b981;
+      color: white;
+      padding: 24px 20px;
+      text-align: center;
+    }
+    .checkmark {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+    .checkmark svg {
+      width: 30px;
+      height: 30px;
+      color: #10b981;
+    }
+    .success-header h1 {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+    .success-header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+    .receipt {
+      padding: 20px;
+      background: white;
+      font-family: 'Courier New', Courier, monospace;
+    }
+    .receipt-header {
+      text-align: center;
+      padding-bottom: 15px;
+      border-bottom: 1px dashed #ddd;
+      margin-bottom: 15px;
+    }
+    .receipt-title {
+      font-size: 18px;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+    .receipt-line {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    .amount-section {
+      border-top: 1px dashed #ddd;
+      border-bottom: 1px dashed #ddd;
+      margin: 15px 0;
+      padding: 15px 0;
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .download-btn {
+      display: block;
+      width: calc(100% - 40px);
+      margin: 20px auto;
+      padding: 12px;
+      background: #10b981;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .download-btn:hover {
+      background: #059669;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="success-header">
+      <div class="checkmark">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h1>Thank You!</h1>
+      <p>Your donation has been received</p>
+    </div>
+
+    <div class="receipt" id="receipt">
+      <div class="receipt-header">
+        <div class="receipt-title">DONATION RECEIPT</div>
+        <div id="receipt-date"></div>
+      </div>
+      <div class="receipt-line">
+        <span>Name:</span>
+        <span id="receipt-name"></span>
+      </div>
+      <div class="receipt-line">
+        <span>Email:</span>
+        <span id="receipt-email"></span>
+      </div>
+      <div class="amount-section">
+        $<span id="receipt-amount"></span>
+      </div>
+      <div style="text-align: center; font-size: 12px;">
+        Receipt #<span id="receipt-id"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- html2canvas for "Download Receipt" feature -->
+  <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      // Wait until the CONFIG object is available.
+      function waitForConfig(callback) {
+        if (window.CONFIG) {
+          callback();
+        } else {
+          setTimeout(() => waitForConfig(callback), 50);
+        }
+      }
+      
+      waitForConfig(function() {
+        // ************************************
+        // Receipt Population & Cookie Handling
+        // ************************************
+        function getCookie(name) {
+          const matches = document.cookie.match(new RegExp(
+            "(?:^|; )" + name.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, "\\$1") + "=([^;]*)"
+          ));
+          return matches ? decodeURIComponent(matches[1]) : undefined;
+        }
+  
+        function setCookie(name, value, days) {
+          let expires = "";
+          if (days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            expires = "; expires=" + date.toUTCString();
+          }
+          document.cookie = name + "=" + encodeURIComponent(value) + expires + "; path=/";
+        }
+  
+        function generateReceiptId() {
+          return Math.random().toString(36).substr(2, 9).toUpperCase();
+        }
+  
+        // Update the receipt date using the IP API (URL taken from CONFIG)
+        function updateReceiptDate(data) {
+          fetch(CONFIG.ipapiURL)
+            .then(response => response.json())
+            .then(ipData => {
+              const userTimezone = ipData.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+              const now = new Date();
+              data.receiptDate = now.toISOString();
+              data.userTimezone = userTimezone;
+              setCookie('donationReceipt', JSON.stringify(data), 7);
+              const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: userTimezone,
+                timeZoneName: 'short'
+              };
+              document.getElementById('receipt-date').textContent =
+                new Intl.DateTimeFormat(undefined, options).format(now);
+            })
+            .catch(() => {
+              const now = new Date();
+              data.receiptDate = now.toISOString();
+              data.userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+              setCookie('donationReceipt', JSON.stringify(data), 7);
+              const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZoneName: 'short'
+              };
+              document.getElementById('receipt-date').textContent =
+                new Intl.DateTimeFormat(undefined, options).format(now);
+            });
+        }
+  
+        // Read donationReceipt cookie and populate the receipt
+        const receiptCookie = getCookie('donationReceipt');
+        if (receiptCookie) {
+          try {
+            let data = JSON.parse(receiptCookie);
+            if (!data.receiptDate) {
+              updateReceiptDate(data);
+            } else {
+              const receiptDate = new Date(data.receiptDate);
+              const userTimezone = data.userTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+              const options = {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: userTimezone,
+                timeZoneName: 'short'
+              };
+              document.getElementById('receipt-date').textContent =
+                new Intl.DateTimeFormat(undefined, options).format(receiptDate);
+            }
+            document.getElementById('receipt-amount').textContent = parseFloat(data.amount).toFixed(2);
+            document.getElementById('receipt-name').textContent = data.name;
+            document.getElementById('receipt-email').textContent = data.email;
+            if (!data.receiptId) {
+              data.receiptId = generateReceiptId();
+              setCookie('donationReceipt', JSON.stringify(data), 7);
+            }
+            document.getElementById('receipt-id').textContent = data.receiptId;
+          } catch (e) {
+            console.error('Error parsing donationReceipt cookie:', e);
+            window.location.href = '/';
+          }
+        } else {
+          window.location.href = '/';
+        }
+  
+        // Expose the download function (used by the Download Receipt button, if needed)
+        window.downloadReceipt = function() {
+          const receiptElement = document.getElementById('receipt');
+          html2canvas(receiptElement).then(canvas => {
+            const dataUrl = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.download = 'donation-receipt.png';
+            link.href = dataUrl;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          });
+        };
+      });
+    });
+  </script>
+  
+  <!-- Define CONFIG as a global property on window -->
+  <script>
+    window.CONFIG = {
+      ipapiURL: 'https://ipapi.co/json/'
+    };
+  </script>
+  
+  <!-- Removed orderComplete.js and any event-firing scripts -->
+</body>
+</html>

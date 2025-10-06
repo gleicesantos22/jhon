@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simplified Donation Form</title>
+    <!-- Include Stripe.js -->
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        max-width: 600px;
+        margin: 2rem auto;
+        padding: 1rem;
+      }
+      h1, h2 {
+        text-align: center;
+      }
+      .donation-buttons {
+        list-style: none;
+        padding: 0;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+      .donation-buttons li {
+        display: inline;
+      }
+      .donation-buttons button {
+        padding: 0.5rem 1rem;
+        border: 1px solid #0070ba;
+        background: #fff;
+        color: #0070ba;
+        cursor: pointer;
+      }
+      .donation-buttons button.active {
+        background: #0070ba;
+        color: #fff;
+      }
+      .summary, .payment-fields, .card-fields {
+        margin-top: 1.5rem;
+      }
+      label {
+        display: block;
+        margin-top: 0.5rem;
+      }
+      input[type="text"],
+      input[type="email"] {
+        width: 100%;
+        padding: 0.5rem;
+        margin-top: 0.25rem;
+        box-sizing: border-box;
+      }
+      .stripe-element {
+        padding: 0.75rem;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-top: 0.25rem;
+      }
+      button[type="submit"] {
+        margin-top: 1.5rem;
+        width: 100%;
+        padding: 0.75rem;
+        background: #28a745;
+        border: none;
+        color: #fff;
+        font-size: 1rem;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Donate Now</h1>
+    <form id="donation-form">
+      <!-- Donation Amount Buttons -->
+      <section class="donation-amount">
+        <h2>Select Donation Amount</h2>
+        <ul class="donation-buttons">
+          <li><button type="button" value="25">$25</button></li>
+          <li><button type="button" value="50">$50</button></li>
+          <li>
+            <button type="button" value="100">
+              $100 <span style="font-size: 0.8rem;">(Suggested)</span>
+            </button>
+          </li>
+          <li><button type="button" value="300">$300</button></li>
+          <li><button type="button" value="500">$500</button></li>
+          <li><button type="button" value="750">$750</button></li>
+          <li><button type="button" value="1000">$1000</button></li>
+          <li><button type="button" value="1500">$1500</button></li>
+          <li><button type="button" value="2000">$2000</button></li>
+        </ul>
+      </section>
+
+      <!-- Donation Summary -->
+      <section class="summary">
+        <h2>Your Donation</h2>
+        <dl>
+          <dt>Donation Amount:</dt>
+          <dd id="donation-amount">$0.00</dd>
+          <dt>Total Due Today:</dt>
+          <dd id="total-due">$0.00</dd>
+        </dl>
+      </section>
+
+      <!-- Payment Method Fields -->
+      <section class="payment-fields">
+        <h2>Payment Method</h2>
+        <label>
+          Email Address:
+          <input type="email" id="email" name="email" required />
+        </label>
+        <label>
+          First Name:
+          <input type="text" id="first-name" name="firstName" required />
+        </label>
+        <label>
+          Last Name:
+          <input type="text" id="last-name" name="lastName" required />
+        </label>
+        <label>
+          <input type="checkbox" id="use-donor-name" />
+          Use as billing name
+        </label>
+        <label>
+          Name on Card:
+          <input type="text" id="card-name" name="cardName" required />
+        </label>
+      </section>
+
+      <!-- Card Details using Stripe Elements -->
+      <section class="card-fields">
+        <h2>Card Details</h2>
+        <label>
+          Card Number:
+          <div id="card-number-element" class="stripe-element"></div>
+        </label>
+        <label>
+          Expiration Date:
+          <div id="card-expiry-element" class="stripe-element"></div>
+        </label>
+        <label>
+          CVC:
+          <div id="card-cvc-element" class="stripe-element"></div>
+        </label>
+      </section>
+
+      <button type="submit">Donate Now</button>
+    </form>
+
+    <script>
+      // --- Donation Amount Buttons ---
+      const donationButtons = document.querySelectorAll('.donation-buttons button');
+      const donationAmountEl = document.getElementById('donation-amount');
+      const totalDueEl = document.getElementById('total-due');
+
+      donationButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+          // Remove active state from all buttons and set for the clicked button.
+          donationButtons.forEach((btn) => btn.classList.remove('active'));
+          button.classList.add('active');
+
+          const amount = parseInt(button.value);
+          const formatted = '$' + amount.toFixed(2);
+          donationAmountEl.textContent = formatted;
+          totalDueEl.textContent = formatted;
+        });
+      });
+
+      // --- Use Donor Name Checkbox ---
+      const useDonorName = document.getElementById('use-donor-name');
+      const firstNameInput = document.getElementById('first-name');
+      const lastNameInput = document.getElementById('last-name');
+      const cardNameInput = document.getElementById('card-name');
+
+      function updateCardName() {
+        if (useDonorName.checked) {
+          const fullName = (firstNameInput.value + ' ' + lastNameInput.value).trim();
+          cardNameInput.value = fullName;
+          cardNameInput.disabled = true;
+        } else {
+          cardNameInput.disabled = false;
+        }
+      }
+
+      firstNameInput.addEventListener('blur', updateCardName);
+      lastNameInput.addEventListener('blur', updateCardName);
+      useDonorName.addEventListener('change', updateCardName);
+
+      // --- Stripe Elements Integration ---
+      // Replace with your actual public key
+      const stripe = Stripe('pk_test_51QbWEoP2oYbJx3uvnpvlr38ss3o7ez5nG3VHbMH6QA1LaJwcm3m6pGvQNdWril6hfD8I5Ow3VmMQZUKbQDiHlhET004A2f9ims');
+      const elements = stripe.elements();
+      const style = {
+        base: {
+          fontSize: '16px',
+          color: '#32325d',
+        }
+      };
+
+      // Create and mount the Card Number Element.
+      const cardNumber = elements.create('cardNumber', { style: style, placeholder: 'Card number' });
+      cardNumber.mount('#card-number-element');
+
+      // Create and mount the Card Expiry Element.
+      const cardExpiry = elements.create('cardExpiry', { style: style, placeholder: 'MM / YY' });
+      cardExpiry.mount('#card-expiry-element');
+
+      // Create and mount the Card CVC Element.
+      const cardCvc = elements.create('cardCvc', { style: style, placeholder: 'CVC' });
+      cardCvc.mount('#card-cvc-element');
+
+      // --- Form Submission ---
+      const form = document.getElementById('donation-form');
+      form.addEventListener('submit', function (event) {
+        event.preventDefault();
+        // Here you would typically create a Stripe token and submit the form data to your server.
+        // For demonstration, we just alert that the form was submitted.
+        alert('Donation form submitted!');
+      });
+    </script>
+  </body>
+</html>
